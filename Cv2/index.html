@@ -7,6 +7,7 @@
 </head>
 <body>
     <canvas id="canvas"></canvas>
+    <canvas id="resultado"></canvas>
 
 
     <script type="text/javascript">
@@ -24,6 +25,9 @@
 
             ctx.drawImage( image,0, 0, image.width, image.height);
             blancoYNegro(canvas);
+
+            var resultado = document.getElementById('resultado');
+            convulcionar(canvas, resultado);
         }
 
         function blancoYNegro(canvas){
@@ -50,6 +54,11 @@
 
             }
             ctx.putImageData(imgData, 0, 0);
+
+        }
+
+        function convulcionar(canvasFuentes, canvasDestino){
+            var ctxFuente = 
         }
 
     </script>
