@@ -13,7 +13,7 @@
 
         var image = new Image();
         image.onload = imageLoaded;
-        image.src = 'foto.png';
+        image.src = '/foto.jpeg';
 
         function imageLoaded() {
             var canvas = document.getElementById('canvas');
@@ -23,7 +23,34 @@
             canvas.height = image.height;
 
             ctx.drawImage( image,0, 0, image.width, image.height);
+            blancoYNegro(canvas);
         }
+
+        function blancoYNegro(canvas){
+            var ctx = canvas.getContext("2d");
+            var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            var pixeles = imgData.data;
+
+            console.log(imgData)
+            for (var p=0; p < pixeles.length; p +=4){
+                var rojo = pixeles[p];
+                var verde = pixeles[p+1];
+                var azul = pixeles[p+2];
+                var alpha = pixeles[p+3];
+
+
+                var gris = (rojo + verde + azul) / 3
+
+                // rojo:50 , verde: 120 azul: 230
+                // gris = (50+120+ 230) / 3= 400/3= 133.33
+
+                pixeles[p] = gris;
+                pixeles[p + 1] = gris;
+                pixeles[p + 2] = gris;
+                
+            }
+        }
+
     </script>
     
 
