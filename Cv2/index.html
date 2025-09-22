@@ -57,8 +57,85 @@
 
         }
 
-        function convulcionar(canvasFuentes, canvasDestino){
-            var ctxFuente = 
+        function convulcionar(canvasFuente, canvasDestino){
+            var ctxFuente = canvasFuente.getContext ("2d")
+            var imgDataFuente = ctxFuente.getImageData(0, 0, canvasFuente.width, canvasDestino.height);
+            var pixelesFuente = imgDataFuente.data;
+
+            canvasDestino.width = canvasFuente.width;
+            canvasDestino.height = canvasFuente.height;
+            var ctxDestino = canvasFuente.getContext("2d");
+            var imgDataDestino = ctxDestino.getImageData(0, 0, canvasDestino.width, canvasDestino.height);
+            var pixelesDestino = imgDataDestino.data;
+
+            //nucleo o kernel
+            var sovelVerticar = [
+                [-1, 0, 1],
+                [-2, 0, 2],
+                [-1, 0, 1]
+            ];
+
+            var solvelHorizontal = [
+                [-1, -2, -1],
+                [ 0,  0,  0],
+                [ 1,  2,  1]
+            ];
+
+            for (var y=1; y < canvasFuente.height -1; y++){
+                for (var x=1; x < canvasFuente.width -1; x++){
+                    //posicion del arreglo de javaScript
+                    var idx = (y * canvasFuente.width + x) * 4;
+
+                    for(var kernelY = 0; kernel < 3; kernelY++){
+                        for(var kernelX = 0; kernelX < 3; kernelX++){
+                            
+                            var totalY = 0;
+                            var totalX = 0;
+                            var resultadoY = sovelVerticar[kernelY][kernelX] * pixelesFuente[((((y + (kernelY -1))* canvasFuente.width + (x+ (kernelX-1))))*4)];
+
+
+                            var resultadoX = solvelHorizontal[kernelY][kernelX] * pixelesFuente[((((y + (kernelY -1))* canvasFuente.width + (x+ (kernelX-1))))*4)];
+
+                        }
+                        
+
+                    }
+
+                    // convolucion con sovel
+                        var casillaY1 = sovelVerticar[0][0] * pixelesFuente[((((y - 1)* canvasFuente.width) + (x - 1))*4)];
+                        var casillaY2 = sovelVerticar[0][1] * pixelesFuente[((((y - 1)* canvasFuente.width) + (x))*4)];
+                        var casillaY3 = sovelVerticar[0][2] * pixelesFuente[((((y - 1)* canvasFuente.width) + (x + 1))*4)];
+                        var casillaY4 = sovelVerticar[1][0] * pixelesFuente[((((y)* canvasFuente.width) + (x - 1))*4)];
+                        var casillaY5 = sovelVerticar[1][1] * pixelesFuente[((((y)* canvasFuente.width) + (x))*4)];
+                        var casillaY6 = sovelVerticar[1][2] * pixelesFuente[((((y)* canvasFuente.width) + (x + 1))*4)];
+                        var casillaY7 = sovelVerticar[2][0] * pixelesFuente[((((y + 1)* canvasFuente.width) + (x - 1))*4)];
+                        var casillaY8 = sovelVerticar[2][1] * pixelesFuente[((((y + 1)* canvasFuente.width) + (x))*4)];
+                        var casillaY9 = sovelVerticar[2][2] * pixelesFuente[((((y + 1)* canvasFuente.width) + (x + 1))*4)];
+
+
+                        var resultadoY = casillaY1 + casillaY2 + casillaY3 + casillaY4 + casillaY5 + casillaY6 + casillaY7 + casillaY8 + casillaY9;
+
+                        pixelesDestino[idx] = resultadoY; //rojo
+                        pixelesDestino[idx + 1] = resultadoY; //verde
+                        pixelesDestino[idx + 2 ] = resultadoY; //azul
+                        pixelesDestino[idx + 3 ] = resultadoY; //alfa
+
+                        var casillaX1 = solvelHorizontal[0][0] * pixelesFuente[((((y - 1)* canvasFuente.width) + (x - 1))*4)];
+                        var casillaX2 = solvelHorizontal[0][1] * pixelesFuente[((((y - 1)* canvasFuente.width) + (x))*4)];
+                        var casillaX3 = solvelHorizontal[0][2] * pixelesFuente[((((y - 1)* canvasFuente.width) + (x + 1))*4)];
+                        var casillaX4 = solvelHorizontal[1][0] * pixelesFuente[((((y)* canvasFuente.width) + (x - 1))*4)];
+                        var casillaX5 = solvelHorizontal[1][1] * pixelesFuente[((((y)* canvasFuente.width) + (x))*4)];
+                        var casillaX6 = solvelHorizontal[1][2] * pixelesFuente[((((y)* canvasFuente.width) + (x + 1))*4)];
+                        var casillaX7 = solvelHorizontal[2][0] * pixelesFuente[((((y + 1)* canvasFuente.width) + (x - 1))*4)];
+                        var casillaX8 = solvelHorizontal[2][1] * pixelesFuente[((((y + 1)* canvasFuente.width) + (x))*4)];
+                        var casillaX9 = solvelHorizontal[2][2] * pixelesFuente[((((y + 1)* canvasFuente.width) + (x + 1))*4)];
+
+                        var resultadoX = casillaX1 + casillaX2 + casillaX3 + casillaX4 + casillaX5 + casillaX6 + casillaX7 + casillaX8 + casillaX9;
+
+                        var mag = Math.sqrt((resultadoX * resultadoX+ resultadoY * resultadoY));
+
+                }
+            }
         }
 
     </script>
