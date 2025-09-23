@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Filtros de Imagen con Canvas</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f4; }
+        #controles { margin-bottom: 20px; padding: 15px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h3 { margin-top: 0; }
+        button {
+            margin: 5px;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        button:hover { background-color: #0056b3; }
+        canvas { border: 1px solid #ccc; background-color: #fff; }
+    </style>
+</head>
+<body>
+    
+    <canvas id="canvas-original" style="display: none;"></canvas>
+    <canvas id="canvas-gris" style="display: none;"></canvas>
+
+    <div id="controles">
+        <h3>Aplicar Filtro:</h3>
+        <button id="btn-sobel">Bordes (Sobel)</button>
+        <button id="btn-nitidez">Nitidez (Sharpen)</button>
+        <button id="btn-desenfoque">Desenfoque (Blur)</button>
+        <button id="btn-relieve">Relieve (Emboss)</button>
+        <button id="btn-bordes-laplace">Bordes (Laplace)</button>
+        <button id="btn-contorno">Contorno</button> <button id="btn-identidad">Original Gris (Identidad)</button>
+    </div>
+
+    <canvas id="resultado"></canvas>
+
+    <script type="text/javascript">
+        window.onload = function() {
+            // Definimos los kernels (matrices) para nuestros filtros
+            const KERNELS = {
+                identidad: [
+                    [0, 0, 0],
+                    [0, 1, 0],
+                    [0, 0, 0]
+                ],
+                nitidez: [
+                    [ 0, -1,  0],
+                    [-1,  5, -1],
+                    [ 0, -1,  0]
+                ],
+                desenfoque: [
+                    [1/9, 1/9, 1/9],
+                    [1/9, 1/9, 1/9],
+                    [1/9, 1/9, 1/9]
+                ],
+                relieve: [
+                    [-2, -1, 0],
+                    [-1,  1, 1],
+                    [ 0,  1, 2]
+                ],
+                bordes_laplace: [
+                    [ 0,  1,  0],
+                    [ 1, -4,  1],
+                    [ 0,  1,  0]
+                ],
+                // --- KERNEL NUEVO ---
+                contorno: [
+                    [-1, -1, -1],
+                    [-1,  8, -1],
+                    [-1, -1, -1]
+                ],
+                sobelVertical: [
+                    [-1, 0, 1],
+                    [-2, 0, 2],
+                    [-1, 0, 1]
+                ],
+                sobelHorizontal: [
+                    [-1, -2, -1],
+                    [ 0,  0,  0],
+                    [ 1,  2,  1]
+                ]
+            };
+
+            // --- Carga y preparación de la imagen ---
+            var image = new Image();
+            image.onload = imageLoaded;
+            image.src = '/foto.jpeg'; 
+
+            function imageLoaded() {
+                var canvasOriginal = document.getElementById('canvas-original');
+                var canvasGris = document.getElementById('canvas-gris');
+                var ctxOriginal = canvasOriginal.getContext("2d");
+
+                canvasOriginal.width = image.width;
+                canvasOriginal.height = image.height;
+                ctxOriginal.drawImage(image, 0, 0, image.width, image.height);
+
+                blancoYNegro(canvasOriginal, canvasGris);
+
+                var canvasDestino = document.getElementById('resultado');
+                var ctxDestino = canvasDestino.getContext('2d');
+                canvasDestino.width = canvasGris.width;
+                canvasDestino.height = canvasGris.height;
+                ctxDestino.drawImage(canvasGris, 0, 0);
+            }
+
+            function blancoYNegro(canvasFuente, canvasDestino) {
+                var ctxFuente = canvasFuente.getContext("2d");
+                var imgData = ctxFuente.getImageData(0, 0, canvasFuente.width, canvasFuente.height);
+                var pixeles = imgData.data;
+
+                for (var p = 0; p < pixeles.length; p += 4) {
+                    var gris = (pixeles[p] + pixeles[p+1] + pixeles[p+2]) / 3;
+                    pixeles[p] = pixeles[p+1] = pixeles[p+2] = gris;
+                }
+                
+                canvasDestino.width = canvasFuente.width;
+                canvasDestino.height = canvasFuente.height;
+                var ctxDestino = canvasDestino.getContext("2d");
+                ctxDestino.putImageData(imgData, 0, 0);
+            }
+            
+            function aplicarConvolucion(kernel) {
+                var canvasFuente = document.getElementById('canvas-gris');
+                var canvasDestino = document.getElementById('resultado');
+                
+                var ctxFuente = canvasFuente.getContext("2d");
+                var imgDataFuente = ctxFuente.getImageData(0, 0, canvasFuente.width, canvasFuente.height);
+                var pixelesFuente = imgDataFuente.data;
+
+                var ctxDestino = canvasDestino.getContext("2d");
+                var imgDataDestino = ctxDestino.createImageData(canvasDestino.width, canvasDestino.height);
+                var pixelesDestino = imgDataDestino.data;
+                
+                for (var y = 1; y < canvasFuente.height - 1; y++) {
+                    for (var x = 1; x < canvasFuente.width - 1; x++) {
+                        var idx = (y * canvasFuente.width + x) * 4;
+                        var total = 0;
+
+                        for (var ky = -1; ky <= 1; ky++) {
+                            for (var kx = -1; kx <= 1; kx++) {
+                                var pixelVecinoIdx = ((y + ky) * canvasFuente.width + (x + kx)) * 4;
+                                var valorPixel = pixelesFuente[pixelVecinoIdx];
+                                total += valorPixel * kernel[ky + 1][kx + 1];
+                            }
+                        }
+                        
+                        pixelesDestino[idx] = total;
+                        pixelesDestino[idx + 1] = total;
+                        pixelesDestino[idx + 2] = total;
+                        pixelesDestino[idx + 3] = 255;
+                    }
+                }
+                ctxDestino.putImageData(imgDataDestino, 0, 0);
+            }
+            
+            function aplicarFiltroSobel() {
+                var canvasFuente = document.getElementById('canvas-gris');
+                var canvasDestino = document.getElementById('resultado');
+                
+                var ctxFuente = canvasFuente.getContext("2d");
+                var imgDataFuente = ctxFuente.getImageData(0, 0, canvasFuente.width, canvasFuente.height);
+                var pixelesFuente = imgDataFuente.data;
+
+                var ctxDestino = canvasDestino.getContext("2d");
+                var imgDataDestino = ctxDestino.createImageData(canvasDestino.width, canvasDestino.height);
+                var pixelesDestino = imgDataDestino.data;
+                
+                var sobelVertical = KERNELS.sobelVertical;
+                var sobelHorizontal = KERNELS.sobelHorizontal;
+
+                for (var y = 1; y < canvasFuente.height - 1; y++) {
+                    for (var x = 1; x < canvasFuente.width - 1; x++) {
+                        var idx = (y * canvasFuente.width + x) * 4;
+                        var totalY = 0;
+                        var totalX = 0;
+                        
+                        for (var ky = -1; ky <= 1; ky++) {
+                            for (var kx = -1; kx <= 1; kx++) {
+                                var pixelVecinoIdx = ((y + ky) * canvasFuente.width + (x + kx)) * 4;
+                                var valorPixel = pixelesFuente[pixelVecinoIdx];
+                                totalY += valorPixel * sobelVertical[ky + 1][kx + 1];
+                                totalX += valorPixel * sobelHorizontal[ky + 1][kx + 1];
+                            }
+                        }
+                        
+                        var mag = Math.sqrt(totalX * totalX + totalY * totalY);
+                        
+                        pixelesDestino[idx] = mag;
+                        pixelesDestino[idx + 1] = mag;
+                        pixelesDestino[idx + 2] = mag;
+                        pixelesDestino[idx + 3] = 255;
+                    }
+                }
+                ctxDestino.putImageData(imgDataDestino, 0, 0);
+            }
+
+            // --- Conexión de los botones a las funciones ---
+            document.getElementById('btn-sobel').addEventListener('click', function() {
+                aplicarFiltroSobel();
+            });
+            document.getElementById('btn-nitidez').addEventListener('click', function() {
+                aplicarConvolucion(KERNELS.nitidez);
+            });
+            document.getElementById('btn-desenfoque').addEventListener('click', function() {
+                aplicarConvolucion(KERNELS.desenfoque);
+            });
+            document.getElementById('btn-relieve').addEventListener('click', function() {
+                aplicarConvolucion(KERNELS.relieve);
+            });
+            document.getElementById('btn-bordes-laplace').addEventListener('click', function() {
+                aplicarConvolucion(KERNELS.bordes_laplace);
+            });
+            // --- CONEXIÓN DEL BOTÓN NUEVO ---
+            document.getElementById('btn-contorno').addEventListener('click', function() {
+                aplicarConvolucion(KERNELS.contorno);
+            });
+            document.getElementById('btn-identidad').addEventListener('click', function() {
+                aplicarConvolucion(KERNELS.identidad);
+            });
+        };
+    </script>
+
+</body>
+</html>
